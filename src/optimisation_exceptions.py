@@ -1,0 +1,3 @@
+class FileNotGivenException(Exception):
+    pass
+
