@@ -1,0 +1,7 @@
+*.java
+!Assignment2Semantics.java
+!Assignment2Codegen.java
+*.class
+*.tokens
+*~
+*.pyc
