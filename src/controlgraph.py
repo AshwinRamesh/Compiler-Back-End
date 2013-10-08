@@ -7,7 +7,7 @@
 #### out_nodes <-- array of nodes that represents nodes pointed to by self (successor nodes)
 class Node:
 
-    def __init__(self, block_id, instructions):
+    def __init__(self, block_id, instructions = []):
         self.node_id = block_id
         self.instructions = instructions
         self.in_nodes = []
@@ -35,6 +35,9 @@ class Node:
     def get_out_nodes(self):
         return self.out_nodes
 
+    def get_final_instruction(self):
+        return self.instructions[-1]
+
     def __str__(self):
         return "Node ID: %s \n Instructions: %s \n Predecessors: %s \n Successors: %s \n" % \
     (self.node_id, self.instructions, [node.get_id() for node in self.in_nodes], [node.get_id() for node in self.out_nodes])
@@ -60,9 +63,33 @@ class Instruction:
 ## Block - represents a singble block --> contains many nodes
 class Block:
 
-    def __init__(self, block):
-        pass
+    def __init__(self, block_id, instructions):
+        self.id = block_id
+        self.nodes = []
+        current_instructions = [] # current sequence of instructions
+        i = 0 # block node counter
 
+        # Process all instructions and create nodes
+        for instruction in instructions:
+            inst = Instruction(instruction)
+            current_instructions.append(inst)
+            if inst.get_type() in ("br", "ret"):
+                self.nodes.append(Node(i, current_instructions))
+                i += 1
+                current_instructions = []
+
+        # Create another node if instructions still unprocessed
+        if len(current_instructions) > 0:
+            self.nodes.append(Node(i, current_instructions))
+
+    def get_nodes(self):
+        return self.nodes
+
+    def get_id(self):
+        return self.id
+
+    def get_head(self): # return the starting node for the block
+        return self.nodes[0]
 
 ## CFG -- represents a Control Flow Graph. This holds auxillary information about nodes and performs
 ##        important functions such as creating the graph and creating code from nodes
@@ -76,42 +103,32 @@ class CFG:
 
     def __init__(self, name, blocks):
         self.name = name
+        self.end = Node(-1)
         self.start = Node("START", [])
-        self.end = Node("END", [])
-        self.nodes = [self.start, self.end]
+        self.blocks = []
+        self.nodes = [self.end]
         self.current_block_number = 0
 
-        current_instructions = []
-        #for every instruction in the block
-        #if we hit a br or ret
-        #then the code above this (but before any other br or rets) is a new node
-        #keep going
-        for block_id, instructions in blocks.iteritems():
+        # Create all nodes by creating blocks
+        for block_id, instructions in blocks.iterItems():
+            self.blocks.append(Block(block_id, instructions))
 
-            for instruction in instructions:
-                current_instructions.append(instruction)
-                operator = instruction[0]
-                if operator in ("br", "ret"):
-                    #make a node with the current instructions, and clear the list for any later nodes
-                    node = self.add_new_node(current_instructions)
-                    current_instructions = []
-                    if operator == "ret":
-                        node.add_out_node(self.end)
+        # Create all connections between nodes
+        for block in self.blocks:
+            for node in block.get_nodes():
+                self.add_node(node)
+                instruction = node.get_final_instruction()
+                if (instruction.get_type() == "br"):
+                    node.add_out_node(blocks[int(instruction[1])].get_head())
+                    node.add_out_node(blocks[int(instruction[2])].get_head())
+                elif (instruction.get_type() == "ret"):
+                    node.add_out_node(self.end)
+                else: # do i need to consider call etc? ???? TODO
+                    pass
 
-            #make a node at the end of the instructions
-            if current_instructions:
-                self.add_new_node(current_instructions)
-                current_instructions = []
+        # Set the start/head node
+        self.start = self.blocks[0].get_head()
 
-        #After we've made all the nodes, the first one in the list is the one the function will start at
-        self.start.add_out_node(self.nodes[0])
-
-
-    def add_new_node(self, current_instructions):
-        node = Node(self.current_block_number, current_instructions)
-        self.add_node(node)
-        self.current_block_number += 1
-        return node
 
     def get_start(self):
         return self.start
