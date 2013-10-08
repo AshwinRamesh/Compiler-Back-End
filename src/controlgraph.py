@@ -30,7 +30,8 @@ class Node:
 
     def __str__(self):
         return "Node ID: %s \n Instructions: %s \n Predecessors: %s \n Successors: %s \n" % \
-    (self.node_id, self.instructions, [node.get_id() for node in self.in_nodes], [node.get_id() for node in self.out_nodes])
+        (self.node_id, self.instructions, [node.get_id() for node in self.in_nodes], [node.get_id() for node in self.out_nodes])
+
     def __repr__(self):
         return str(self)
 
@@ -67,8 +68,8 @@ class CFG:
                 current_instructions = []
                 if block_id not in block_entry_nodes:
                     block_entry_nodes[block_id] = node
-                
-                
+
+
         for node in self.get_nodes():
             for instruction in node.get_instructions():
                 if instruction[0] == "br":
@@ -76,8 +77,8 @@ class CFG:
                     node.add_out_node(block_entry_nodes[br_block_1])
                     node.add_out_node(block_entry_nodes[br_block_2])
 
-        #After we've made all the nodes, the first one in the list is the one the function will start at
-        self.start.add_out_node(self.nodes[0])
+        #After we've made all the nodes, the first one in the list is the one the function will start at (not including the start and end nodes
+        self.start.add_out_node(self.nodes[2])
 
 
     def add_new_node(self, current_instructions):
