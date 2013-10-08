@@ -37,7 +37,7 @@ class Node:
 
 class CFG:
 
-    def __init__(self, program):
+    def __init__(self, blocks):
         #TODO: Are we the worst?
         self.start = Node("START", [])
         self.end = Node("END", [])
@@ -45,26 +45,23 @@ class CFG:
         self.current_block_number = 0
 
         current_instructions = []
-        for name, function in program.iteritems():
-            blocks = function['blocks'] #I'm so sorry Kenni
+        #for every instruction in the block
+        #if we hit a br or ret
+        #then the code above this (but before any other br or rets) is a new node
+        #keep going
+        for block_id, instructions in blocks.iteritems():
 
-            #for every instruction in the block
-            #if we hit a br or ret
-            #then the code above this (but before any other br or rets) is a new node
-            #keep going
-            for block_id, instructions in blocks.iteritems():
+            for instruction in instructions:
+                current_instructions.append(instruction)
 
-                for instruction in instructions:
-                    current_instructions.append(instruction)
-
-                    if instruction[0] in ("br", "ret"):
-                        #make a node with the current instructions, and clear the list for any later nodes
-                        self.add_new_node(current_instructions)
-                        current_instructions = []
-                #make a node at the end of the instructions
-                if current_instructions:
+                if instruction[0] in ("br", "ret"):
+                    #make a node with the current instructions, and clear the list for any later nodes
                     self.add_new_node(current_instructions)
                     current_instructions = []
+            #make a node at the end of the instructions
+            if current_instructions:
+                self.add_new_node(current_instructions)
+                current_instructions = []
 
 
 

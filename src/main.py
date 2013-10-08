@@ -5,11 +5,12 @@ import sys
 
 def main():
     program = parser.process_file(sys.argv[1])
-    print program
+    graphs = [] #dealwithit
     #for key, function in functions.items():
     #    graphs[key] = ControlGraph.create_cfg(key, function)
 
-    cfg = CFG(program)
+    for name, function in program.iteritems():
+        graphs.append(CFG(function['blocks']))
 
 if __name__ == "__main__":
     main()
