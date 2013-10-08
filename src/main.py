@@ -10,7 +10,10 @@ def main():
     #    graphs[key] = ControlGraph.create_cfg(key, function)
 
     for name, function in program.iteritems():
-        graphs.append(CFG(function['blocks']))
+        graphs.append(CFG(name, function['blocks']))
+
+    for graph in graphs:
+        print graph
 
 if __name__ == "__main__":
     main()

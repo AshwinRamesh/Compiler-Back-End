@@ -15,11 +15,9 @@ class Node:
     def get_id(self):
         return self.node_id
 
-    def add_in_node(self, node):
-        self.in_nodes.append(node)
-
     def add_out_node(self, node):
         self.out_nodes.append(node)
+        node.in_nodes.append(self)
 
     def get_instructions(self):
         return self.instructions
@@ -31,14 +29,16 @@ class Node:
         return self.out_nodes
 
     def __str__(self):
-        return "Node ID: %s \n Instructions: %s \n Predecessors: %s \n Successors: %s \n" % (self.node_id, self.instructions, self.in_nodes, self.out_nodes)
+        return "Node ID: %s \n Instructions: %s \n Predecessors: %s \n Successors: %s \n" % \
+    (self.node_id, self.instructions, [node.get_id() for node in self.in_nodes], [node.get_id() for node in self.out_nodes])
     def __repr__(self):
         return str(self)
 
 class CFG:
 
-    def __init__(self, blocks):
-        #TODO: Are we the worst?
+    def __init__(self, name, blocks):
+
+        self.name = name
         self.start = Node("START", [])
         self.end = Node("END", [])
         self.nodes = [self.start, self.end]
@@ -53,25 +53,28 @@ class CFG:
 
             for instruction in instructions:
                 current_instructions.append(instruction)
-
-                if instruction[0] in ("br", "ret"):
+                operator = instruction[0]
+                if operator in ("br", "ret"):
                     #make a node with the current instructions, and clear the list for any later nodes
-                    self.add_new_node(current_instructions)
+                    node = self.add_new_node(current_instructions)
                     current_instructions = []
+                    if operator == "ret":
+                        node.add_out_node(self.end)
+
             #make a node at the end of the instructions
             if current_instructions:
                 self.add_new_node(current_instructions)
                 current_instructions = []
 
-
-
-        print self.nodes
+        #After we've made all the nodes, the first one in the list is the one the function will start at
+        self.start.add_out_node(self.nodes[0])
 
 
     def add_new_node(self, current_instructions):
         node = Node(self.current_block_number, current_instructions)
         self.add_node(node)
         self.current_block_number += 1
+        return node
 
     def get_start(self):
         return self.start
@@ -94,4 +97,7 @@ class CFG:
 
     def create_intermediate_code(self): # TODO
         pass
+
+    def __repr__(self):
+        return self.name + ':\n' + repr(self.nodes)
 
