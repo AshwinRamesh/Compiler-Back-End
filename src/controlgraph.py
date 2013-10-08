@@ -59,8 +59,8 @@ class CFG:
                     node = self.add_new_node(current_instructions)
                     current_instructions = []
                     node.add_out_node(self.end)
-                if block_id not in block_entry_nodes:
-                    block_entry_nodes[block_id] = node
+                    if block_id not in block_entry_nodes:
+                        block_entry_nodes[block_id] = node
             #make a node at the end of the instructions
             if current_instructions:
                 node = self.add_new_node(current_instructions)
