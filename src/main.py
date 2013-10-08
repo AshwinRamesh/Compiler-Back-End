@@ -1,5 +1,5 @@
 import parser
-from controlgraph import CFG 
+from controlgraph import CFG
 import sys
 
 
