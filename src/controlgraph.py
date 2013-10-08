@@ -45,26 +45,36 @@ class CFG:
         self.current_block_number = 0
 
         current_instructions = []
+        block_entry_nodes = {} # block id -> entry node
         #for every instruction in the block
         #if we hit a br or ret
         #then the code above this (but before any other br or rets) is a new node
         #keep going
         for block_id, instructions in blocks.iteritems():
-
             for instruction in instructions:
                 current_instructions.append(instruction)
-                operator = instruction[0]
-                if operator in ("br", "ret"):
+                opcode = instruction[0]
+                if opcode == "ret":
                     #make a node with the current instructions, and clear the list for any later nodes
                     node = self.add_new_node(current_instructions)
                     current_instructions = []
-                    if operator == "ret":
-                        node.add_out_node(self.end)
-
+                    node.add_out_node(self.end)
+                if block_id not in block_entry_nodes:
+                    block_entry_nodes[block_id] = node
             #make a node at the end of the instructions
             if current_instructions:
-                self.add_new_node(current_instructions)
+                node = self.add_new_node(current_instructions)
                 current_instructions = []
+                if block_id not in block_entry_nodes:
+                    block_entry_nodes[block_id] = node
+                
+                
+        for node in self.get_nodes():
+            for instruction in node.get_instructions():
+                if instruction[0] == "br":
+                    br_block_1, br_block_2 = instruction[2], instruction[3]
+                    node.add_out_node(block_entry_nodes[br_block_1])
+                    node.add_out_node(block_entry_nodes[br_block_2])
 
         #After we've made all the nodes, the first one in the list is the one the function will start at
         self.start.add_out_node(self.nodes[0])
