@@ -1,3 +1,10 @@
+
+## Node - represents a block of code. Will be linked together to form a Control Flow Graph (CFG)
+## Attributes:
+#### node_id <-- represents the block id
+#### instructions <-- represents an array of instructions in the block
+#### in_nodes <-- array of nodes that point to self (predessor nodes)
+#### out_nodes <-- array of nodes that represents nodes pointed to by self (successor nodes)
 class Node:
 
     def __init__(self, block_id, instructions):
@@ -9,6 +16,9 @@ class Node:
     def add_instruction(self, instruction):
         self.instructions.append(instruction)
 
+    def get_instructions(self):
+        return self.instructions
+
     def set_id(self, block_id):
         self.node_id = block_id
 
@@ -19,9 +29,6 @@ class Node:
         self.out_nodes.append(node)
         node.in_nodes.append(self)
 
-    def get_instructions(self):
-        return self.instructions
-
     def get_in_nodes(self):
         return self.in_nodes
 
@@ -31,13 +38,43 @@ class Node:
     def __str__(self):
         return "Node ID: %s \n Instructions: %s \n Predecessors: %s \n Successors: %s \n" % \
     (self.node_id, self.instructions, [node.get_id() for node in self.in_nodes], [node.get_id() for node in self.out_nodes])
+
     def __repr__(self):
         return str(self)
 
+
+## Instruction - represents a single instruction
+class Instruction:
+
+    def __init__(self,instruction):
+        self.type = instruction[0]
+        self.args = instruction[1:]
+
+    def get_type(self):
+        return self.type
+
+    def get_args(self):
+        return self.args
+
+
+## Block - represents a singble block --> contains many nodes
+class Block:
+
+    def __init__(self, block):
+        pass
+
+
+## CFG -- represents a Control Flow Graph. This holds auxillary information about nodes and performs
+##        important functions such as creating the graph and creating code from nodes
+## Attributes:
+#### name
+#### head --> start of the function. first block (0)
+#### end
+#### nodes
+####
 class CFG:
 
     def __init__(self, name, blocks):
-
         self.name = name
         self.start = Node("START", [])
         self.end = Node("END", [])
