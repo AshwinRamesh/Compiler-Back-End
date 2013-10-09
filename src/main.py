@@ -16,7 +16,7 @@ def main():
         print graph
         print "Optimising...."
         optimiser.Optimiser.remove_unreachable_nodes(graph)
-
+        print graph
 
 if __name__ == "__main__":
     main()

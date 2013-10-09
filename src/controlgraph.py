@@ -1,13 +1,23 @@
+import instruction
+
 class Node:
 
     def __init__(self, block_id, instructions):
         self.node_id = block_id
-        self.instructions = instructions
+        self.instructions = [instruction.Instruction(instr[0], instr[1:]) for instr in instructions]
         self.in_nodes = []
         self.out_nodes = []
 
     def add_instruction(self, instruction):
         self.instructions.append(instruction)
+
+    def get_registers(self):
+        registers = []
+        for instruction in self.instructions:
+            registers += instruction.get_registers()
+        #time to be a hack and remove duplicates
+        registers = list(set(registers))
+        return registers
 
     def set_id(self, block_id):
         self.node_id = block_id
@@ -72,8 +82,9 @@ class CFG:
 
         for node in self.get_nodes():
             for instruction in node.get_instructions():
-                if instruction[0] == "br":
-                    br_block_1, br_block_2 = instruction[2], instruction[3]
+                if instruction.get_op() == "br":
+                    args = instruction.get_args()
+                    br_block_1, br_block_2 = args[1], args[2]
                     node.add_out_node(block_entry_nodes[br_block_1])
                     node.add_out_node(block_entry_nodes[br_block_2])
 
