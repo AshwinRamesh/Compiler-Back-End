@@ -98,7 +98,8 @@ class CFG:
 
     def get_nodes(self):
         return self.nodes
-
+    def set_nodes(self, new_nodes):
+        self.nodes = new_nodes
     def get_node(self, node_id):
         #TODO: map id -> node if we do this a lot
         #linearsearch
