@@ -8,9 +8,9 @@ class Optimiser():
         nodes = [cfg.get_start()]
         while nodes:
             for node in nodes:
-                reachable_nodes.append(node)
                 nodes.remove(node)
                 nodes += node.get_out_nodes()
+                reachable_nodes.append(node)
         return reachable_nodes
 
     @classmethod
