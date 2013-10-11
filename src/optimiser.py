@@ -23,29 +23,30 @@ class Optimiser():
     @classmethod
     def remove_dead_code(self, cfg):
 
-        def transfer(register, instruction):
-            #TODO check the register isn't used in another instruction later
-            return instruction.get_op() in ["br", "ret", "st"]
+        def transfer(node, in_set):
+            out_set = {}
+            for instruction in node.get_instructions():
+                if instruction.get_op() in ["br","ret","st"]:
+                    for register in instruction.get_registers():
+                        out_set[register] = True
+                    
+                else:
+                    for register in instruction.get_registers():
+                        if out_set.get(register,None) != True:
+                            out_set[register] = False
+                            
+            return out_set
 
         nodes = self.dfs(cfg)
         # {node -> {in set}, {out set} }
-        sets = {node : ({register : None for register in node.get_registers()}, {}) for node in nodes }
+        sets = {node : ({register : None for register in node.get_registers()}, {register : None for register in node.get_registers()}) for node in nodes }
         worklist = cfg.get_start().get_out_nodes()
         while worklist:
             for node in worklist:
-                for instruction in node.get_instructions():
-                    for register in instruction.get_registers():
-                        #each register needs to know which instruction it's in.
-                        #the transfer function should take an in set
-                        out_set = sets[node][1]
-                        #get the old value in the dictionary, or None if the dictionary is empty/ the node is not there
-                        old_value = out_set.get(register, None)
-                        new_value = transfer(register, instruction)
-                        out_set[register] = new_value
-                        if old_value != new_value:
-                            for successor in node.get_out_nodes():
-                                sets[successor][0][register] = new_value
-                                worklist.append(successor)
+                sets[node][1] = transfer(node, sets[node][0])
+                for successor in node.get_out_nodes():
+                    #sets[successor][0] = sets[node][1]
+                    worklist.append(successor)
                 worklist.remove(node)
 
         for node in nodes:
