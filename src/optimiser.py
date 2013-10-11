@@ -3,7 +3,7 @@ class Optimiser():
 
     @staticmethod
     def dfs(cfg):
-        """AWW YEAH IT'S DFS TIME THANKS INFO1905 THANKS COMP2907 THANKS COMP3456 THANKS MATH2969 THANKS COMP3608"""
+        #TODO: Is our graph ever going to be cyclic? If it is dfs will go forever, and we need to mark nodes as visited etc.
         reachable_nodes = []
         nodes = [cfg.get_start()]
         while nodes:
@@ -16,4 +16,5 @@ class Optimiser():
     @classmethod
     def remove_unreachable_nodes(self, cfg):
         reachable_nodes = self.dfs(cfg)
+        #filter out and nodes that aren't reachable, and set the cfg's nodes to the new filtered list
         cfg.set_nodes(filter(lambda node : node in reachable_nodes, cfg.get_nodes()))

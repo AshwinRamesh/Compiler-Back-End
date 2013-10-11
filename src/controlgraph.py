@@ -4,6 +4,7 @@ class Node:
 
     def __init__(self, block_id, instructions):
         self.node_id = block_id
+        #instructions is a list of instruction objects, which we construct here.
         self.instructions = [instruction.Instruction(instr[0], instr[1:]) for instr in instructions]
         self.in_nodes = []
         self.out_nodes = []
@@ -25,6 +26,7 @@ class Node:
     def get_id(self):
         return self.node_id
 
+    #adds an out edge to this node and keeps track of that edge in the node we're connecting to.
     def add_out_node(self, node):
         self.out_nodes.append(node)
         node.in_nodes.append(self)
@@ -60,7 +62,6 @@ class CFG:
         #for every instruction in the block
         #if we hit a br or ret
         #then the code above this (but before any other br or rets) is a new node
-        #keep going
         for block_id, instructions in blocks.iteritems():
             for instruction in instructions:
                 current_instructions.append(instruction)
