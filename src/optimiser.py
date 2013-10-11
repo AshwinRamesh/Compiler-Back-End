@@ -8,9 +8,9 @@ class Optimiser():
         nodes = [cfg.get_start()]
         while nodes:
             for node in nodes:
-                nodes.remove(node)
                 nodes += node.get_out_nodes()
                 reachable_nodes.append(node)
+                nodes.remove(node)
         return reachable_nodes
 
     @classmethod
@@ -24,22 +24,24 @@ class Optimiser():
     def remove_dead_code(self, cfg):
 
         def transfer(node, in_set):
-            out_set = {}
+            out_set = {register : None for register in node.get_registers()}
             for instruction in node.get_instructions():
                 if instruction.get_op() in ["br","ret","st"]:
                     for register in instruction.get_registers():
                         out_set[register] = True
-                    
-                else:
-                    for register in instruction.get_registers():
-                        if out_set.get(register,None) != True:
-                            out_set[register] = False
-                            
+            print "used registers for node "+str(node.get_id())+": "+str(out_set.keys())         
+            for instruction in node.get_instructions():
+                for register in out_set.iterkeys():
+                    if register in instruction.get_registers():
+                        for register in instruction.get_registers():
+                            out_set[register] = True
+            
             return out_set
 
         nodes = self.dfs(cfg)
+        print [node.get_id() for node in nodes]
         # {node -> {in set}, {out set} }
-        sets = {node : ({register : None for register in node.get_registers()}, {register : None for register in node.get_registers()}) for node in nodes }
+        sets = {node : [{}, {}] for node in nodes }
         worklist = cfg.get_start().get_out_nodes()
         while worklist:
             for node in worklist:
@@ -49,6 +51,7 @@ class Optimiser():
                     worklist.append(successor)
                 worklist.remove(node)
 
+        # TRANSFORM PHASE
         for node in nodes:
             registers = node.get_registers()
             out_set = sets[node][1]
@@ -59,6 +62,3 @@ class Optimiser():
             for instruction in node_instructions:
                 if all(register in unused_registers for register in instruction.get_registers()):
                     node.remove_instruction(instruction)
-
-
-
