@@ -11,6 +11,9 @@ class Node:
 
     def add_instruction(self, instruction):
         self.instructions.append(instruction)
+    
+    def remove_instruction(self, instruction):
+        self.instructions.remove(instruction)
 
     def get_registers(self):
         registers = []
@@ -107,6 +110,14 @@ class CFG:
 
     def add_node(self, node):
         self.nodes.append(node)
+
+    def get_registers(self):
+        registers = set()
+        for node in self.nodes:
+            for register in node.get_registers():
+                registers.add(register)
+        return registers
+
 
     def get_nodes(self):
         return self.nodes
