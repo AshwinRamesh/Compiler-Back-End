@@ -1,4 +1,4 @@
-
+import copy
 class Optimiser():
 
     @staticmethod
@@ -52,9 +52,10 @@ class Optimiser():
             registers = node.get_registers()
             out_set = sets[node][1]
             unused_registers = filter( lambda reg : out_set[reg] != True, registers)
-
+            print [node.get_id(), registers, unused_registers]
             #remove all instructions that use this register from the nodes
-            for instruction in node.get_instructions():
+            node_instructions = copy.copy(node.get_instructions())
+            for instruction in node_instructions:
                 if all(register in unused_registers for register in instruction.get_registers()):
                     node.remove_instruction(instruction)
 
