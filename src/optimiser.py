@@ -52,9 +52,10 @@ class Optimiser():
         for node in nodes:
             registers = node.get_registers()
             out_set = sets[node][1]
-            unused_registers = filter( lambda reg : out_set.get(reg,None) != True, registers)
+            # unused register is a register that is not in the out set.
+            unused_registers = filter(lambda reg : reg not in out_set, registers)
             print [node.get_id(), registers, unused_registers]
-            #remove all instructions that use this register from the nodes
+            # remove all instructions that use this register from the nodes
             node_instructions = copy.copy(node.get_instructions())
             for instruction in node_instructions:
                 if all(register in unused_registers for register in instruction.get_registers()):
