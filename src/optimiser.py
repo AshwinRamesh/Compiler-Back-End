@@ -2,20 +2,23 @@ import copy
 class Optimiser():
 
     @staticmethod
-    def dfs(cfg):
-        #TODO: Is our graph ever going to be cyclic? If it is dfs will go forever, and we need to mark nodes as visited etc.
+    def postorder(cfg):
         reachable_nodes = []
         nodes = [cfg.get_start()]
+        prevNode = None
         while nodes:
-            for node in nodes:
-                nodes += node.get_out_nodes()
+            node = nodes[-1]
+            if prevNode == None or node in prevNode.get_out_nodes():
+                nodes += node.get_out_nodes() 
+            else:
                 reachable_nodes.append(node)
-                nodes.remove(node)
+                nodes.pop()
+            prevNode = node
         return reachable_nodes
 
     @classmethod
     def remove_unreachable_nodes(self, cfg):
-        reachable_nodes = self.dfs(cfg)
+        reachable_nodes = self.postorder(cfg)
         #filter out and nodes that aren't reachable, and set the cfg's nodes to the new filtered list
         cfg.set_nodes(filter(lambda node : node in reachable_nodes, cfg.get_nodes()))
 
@@ -24,38 +27,32 @@ class Optimiser():
     def remove_dead_code(self, cfg):
 
         def transfer(node, in_set):
-            out_set = {register : None for register in node.get_registers()}
-            for instruction in node.get_instructions():
-                if instruction.get_op() in ["br","ret","st"]:
+            out_set = {register : used for register, used in in_set.iteritems()}
+            for instruction in reversed(node.get_instructions()):
+                if instruction.get_op() in ["br","ret","st"] or any(register in out_set for register in instruction.get_registers()):
                     for register in instruction.get_registers():
                         out_set[register] = True
             print "used registers for node "+str(node.get_id())+": "+str(out_set.keys())         
-            for instruction in node.get_instructions():
-                for register in out_set.iterkeys():
-                    if register in instruction.get_registers():
-                        for register in instruction.get_registers():
-                            out_set[register] = True
-            
             return out_set
 
-        nodes = self.dfs(cfg)
-        print [node.get_id() for node in nodes]
+        nodes = self.postorder(cfg)
         # {node -> {in set}, {out set} }
         sets = {node : [{}, {}] for node in nodes }
-        worklist = cfg.get_start().get_out_nodes()
+        worklist = cfg.get_end().get_in_nodes()
         while worklist:
-            for node in worklist:
-                sets[node][1] = transfer(node, sets[node][0])
-                for successor in node.get_out_nodes():
-                    #sets[successor][0] = sets[node][1]
-                    worklist.append(successor)
-                worklist.remove(node)
+            node = worklist[0]
+            sets[node][1] = transfer(node, sets[node][0])
+            for predecessor in node.get_in_nodes():
+                sets[predecessor][0] = sets[node][1]
+                worklist.append(predecessor)
+            worklist.remove(node)
 
         # TRANSFORM PHASE
+        print "[node, all registers, unused]"
         for node in nodes:
             registers = node.get_registers()
             out_set = sets[node][1]
-            unused_registers = filter( lambda reg : out_set[reg] != True, registers)
+            unused_registers = filter( lambda reg : out_set.get(reg,None) != True, registers)
             print [node.get_id(), registers, unused_registers]
             #remove all instructions that use this register from the nodes
             node_instructions = copy.copy(node.get_instructions())

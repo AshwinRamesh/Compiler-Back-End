@@ -90,7 +90,8 @@ class CFG:
                     args = instruction.get_args()
                     br_block_1, br_block_2 = args[1], args[2]
                     node.add_out_node(block_entry_nodes[br_block_1])
-                    node.add_out_node(block_entry_nodes[br_block_2])
+                    if (br_block_1 != br_block_2):
+                        node.add_out_node(block_entry_nodes[br_block_2])
 
         #After we've made all the nodes, the first one in the list is the one the function will start at (not including the start and end nodes
         self.start.add_out_node(self.nodes[2])
