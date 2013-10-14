@@ -28,7 +28,7 @@ class Optimiser():
             return instruction.get_op() in ["br", "ret", "st"]
 
         nodes = self.dfs(cfg)
-        # {node -> {in set}, {out set} }
+        # {node -> ({in set}, {out set})}
         sets = {node : ({register : None for register in node.get_registers()}, {}) for node in nodes }
         worklist = cfg.get_start().get_out_nodes()
         while worklist:
@@ -38,7 +38,7 @@ class Optimiser():
                         #each register needs to know which instruction it's in.
                         #the transfer function should take an in set
                         out_set = sets[node][1]
-                        #get the old value in the dictionary, or None if the dictionary is empty/ the node is not there
+                        #get the old value in the dictionary, or None if the dictionary is empty/the node is not there
                         old_value = out_set.get(register, None)
                         new_value = transfer(register, instruction)
                         out_set[register] = new_value
@@ -56,6 +56,7 @@ class Optimiser():
             #remove all instructions that use this register from the nodes
             node_instructions = copy.copy(node.get_instructions())
             for instruction in node_instructions:
+                #if every register in the instruction is one unused in the node, then that instruction is obsolete
                 if all(register in unused_registers for register in instruction.get_registers()):
                     node.remove_instruction(instruction)
 
