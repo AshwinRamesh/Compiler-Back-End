@@ -2,20 +2,23 @@ import copy
 class Optimiser():
 
     @staticmethod
-    def dfs(cfg):
-        #TODO: Is our graph ever going to be cyclic? If it is dfs will go forever, and we need to mark nodes as visited etc.
+    def postorder(cfg):
         reachable_nodes = []
         nodes = [cfg.get_start()]
+        prevNode = None
         while nodes:
-            for node in nodes:
-                nodes.remove(node)
-                nodes += node.get_out_nodes()
+            node = nodes[-1]
+            if prevNode == None or node in prevNode.get_out_nodes():
+                nodes += node.get_out_nodes() 
+            else:
                 reachable_nodes.append(node)
+                nodes.pop()
+            prevNode = node
         return reachable_nodes
 
     @classmethod
     def remove_unreachable_nodes(self, cfg):
-        reachable_nodes = self.dfs(cfg)
+        reachable_nodes = self.postorder(cfg)
         #filter out and nodes that aren't reachable, and set the cfg's nodes to the new filtered list
         cfg.set_nodes(filter(lambda node : node in reachable_nodes, cfg.get_nodes()))
 
@@ -23,42 +26,38 @@ class Optimiser():
     @classmethod
     def remove_dead_code(self, cfg):
 
-        def transfer(register, instruction):
-            #TODO check the register isn't used in another instruction later
-            return instruction.get_op() in ["br", "ret", "st"]
-
-        nodes = self.dfs(cfg)
-        # {node -> ({in set}, {out set})}
-        sets = {node : ({register : None for register in node.get_registers()}, {}) for node in nodes }
-        worklist = cfg.get_start().get_out_nodes()
-        while worklist:
-            for node in worklist:
-                for instruction in node.get_instructions():
+        def transfer(node, in_set):
+            out_set = {register : used for register, used in in_set.iteritems()}
+            for instruction in reversed(node.get_instructions()):
+                if instruction.get_op() in ["br","ret","st"] or any(register in out_set for register in instruction.get_registers()):
                     for register in instruction.get_registers():
-                        #each register needs to know which instruction it's in.
-                        #the transfer function should take an in set
-                        out_set = sets[node][1]
-                        #get the old value in the dictionary, or None if the dictionary is empty/the node is not there
-                        old_value = out_set.get(register, None)
-                        new_value = transfer(register, instruction)
-                        out_set[register] = new_value
-                        if old_value != new_value:
-                            for successor in node.get_out_nodes():
-                                sets[successor][0][register] = new_value
-                                worklist.append(successor)
-                worklist.remove(node)
+                        out_set[register] = True
+            print "used registers for node", node.get_id(), ":", out_set.keys()
+            return out_set
 
+        nodes = self.postorder(cfg)
+        # {node -> {in set}, {out set} }
+        sets = {node : [{}, {}] for node in nodes }
+        worklist = cfg.get_end().get_in_nodes()
+        while worklist:
+            node = worklist[0]
+            sets[node][1] = transfer(node, sets[node][0])
+            for predecessor in node.get_in_nodes():
+                sets[predecessor][0] = sets[node][1]
+                worklist.append(predecessor)
+            worklist.remove(node)
+
+        # TRANSFORM PHASE
+        print "[node, all registers, unused]"
         for node in nodes:
             registers = node.get_registers()
             out_set = sets[node][1]
-            unused_registers = filter( lambda reg : out_set[reg] != True, registers)
+            # unused register is a register that is not in the out set.
+            unused_registers = filter(lambda reg : reg not in out_set, registers)
             print [node.get_id(), registers, unused_registers]
-            #remove all instructions that use this register from the nodes
+            # remove all instructions that use this register from the nodes
             node_instructions = copy.copy(node.get_instructions())
             for instruction in node_instructions:
                 #if every register in the instruction is one unused in the node, then that instruction is obsolete
                 if all(register in unused_registers for register in instruction.get_registers()):
                     node.remove_instruction(instruction)
-
-
-
