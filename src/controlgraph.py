@@ -30,8 +30,7 @@ class Node:
         return self.node_id
 
     def __iter__(self):
-        for instruction in self.instructions:
-            yield instruction
+        return self.instructions.__iter__()
 
     #adds an out edge to this node and keeps track of that edge in the node we're connecting to.
     def add_out_node(self, node):

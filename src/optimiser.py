@@ -44,13 +44,12 @@ class Optimiser():
                 if instruction.get_op() in ["br","ret","st"] or any(register in out_set for register in instruction.get_registers()):
                     for register in instruction.get_registers():
                         out_set[register] = True
-            print "used registers for node", node.get_id(), ":", out_set.keys()
             return out_set
 
         nodes = self.postorder(cfg)
         # {node -> {in set}, {out set} }
         sets = {node : [{}, {}] for node in nodes }
-        worklist = cfg.get_end().get_in_nodes()
+        worklist = copy.copy(cfg.get_end().get_in_nodes())
         while worklist:
             node = worklist[0]
             sets[node][1] = transfer(node, sets[node][0])
@@ -60,13 +59,11 @@ class Optimiser():
             worklist.remove(node)
 
         # TRANSFORM PHASE
-        print "[node, all registers, unused]"
         for node in nodes:
             registers = node.get_registers()
             out_set = sets[node][1]
             # unused register is a register that is not in the out set.
             unused_registers = filter(lambda reg : reg not in out_set, registers)
-            print [node.get_id(), registers, unused_registers]
             # remove all instructions that use this register from the nodes
             node_instructions = copy.copy(node.get_instructions())
             for instruction in node_instructions:
@@ -74,31 +71,71 @@ class Optimiser():
                 if all(register in unused_registers for register in instruction.get_registers()):
                     node.remove_instruction(instruction)
 
-        @classmethod
-        def remove_redundant_loads(self, cfg):
+    @classmethod
+    def fix_redundant_loads(self, cfg):
 
-            #define
-            IN, OUT, GEN, KILL = 0, 1, 2, 3
+        #define
+        IN, OUT, GEN, KILL = 0, 1, 2, 3
 
+        nodes = self.preorder(cfg)
+        sets = {node : [set(),set(),set(),set()] for node in nodes}
 
+        # make gen and kill sets for all nodes
 
-            def transfer(node_sets):
-                #basedguido
-                return node_sets[GEN] | (node_sets[IN] - node_sets[KILL])
+        def make_gen_for_node(node):
+            gen = sets[node][GEN] 
+            for instr in node:
+                op = instr.get_op()
+                if op in ("ld","add","lc","eq","call"):
+                    # remove any previous instrs in gen that use the register in this instruction
+                    gen = set([i for i in gen if i.get_args()[0] != instr.get_args()[0]])
 
-            nodes = self.preorder(cfg)
-            # {node -> {in set}, {out set} }
-            sets = {node : [set(node.get_in_nodes()), set(), set(), set()] for node in nodes }
-            worklist = cfg.get_start().get_out_nodes()
+                    # if it's an ld then it should be in the gen set
+                    if op == "ld":
+                        gen.add(instr)
+                        print "added",instr,"to gen"
+                if op == "st":
+                    # remove any previous instrs that use the variable in this instruction
+                    gen = set([i for i in gen if i.get_args()[1] != instr.get_args()[0]])
+        
+        def make_kill_for_node(node):
+            kill = sets[node][KILL]
+            for instr in node:
+                op = instr.get_op()
+                if op in ("ld","add","lc","eq","call"):
+                    for node2 in cfg.get_nodes():
+                        if node2 == node:
+                            continue
+                        for instr2 in node2:
+                            if instr2.get_op() == "ld" and instr2.get_args()[0] == instr.get_args()[0]:
+                                kill.add(instr2)
+                if op == "st":
+                    for node2 in cfg.get_nodes():
+                        if node2 == node:
+                            continue
+                        for instr2 in node:
+                            if instr2.get_op() == "ld" and instr2.get_args()[1] == instr.get_args()[0]:
+                                kill.add(instr2)
 
-            while nodes:
-                node = worklist[0]
+        for node in nodes:
+            make_gen_for_node(node)
+            make_kill_for_node(node)
 
-                sets[node][1] = transfer(node, sets[node])
-                for predecessor in node.get_in_nodes():
-                    sets[predecessor][0] = sets[node][1]
-                    worklist.append(predecessor)
-                worklist.remove(node)
+        def transfer(node, node_sets):
+            return node_sets[GEN] | (node_sets[IN] - node_sets[KILL])
 
+        worklist = copy.copy(cfg.get_start().get_out_nodes())
+        while worklist:
+            node = worklist[0]
+            sets[node][OUT] = transfer(node, sets[node])
+            for successor in node.get_out_nodes():
+                sets[successor][IN] = sets[node][OUT]
+                worklist.append(successor)
+            worklist.remove(node)
 
-
+        for node in nodes:
+            print "node:",node.get_id()
+            print "live lds:",sets[node][GEN]
+            print "killed lds:",sets[node][KILL]
+            print "in set:",sets[node][IN]
+            print "out set:",sets[node][OUT],"\n"

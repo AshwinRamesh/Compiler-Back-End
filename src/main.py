@@ -13,12 +13,12 @@ def main():
         graphs.append(CFG(name, function['blocks']))
 
     for graph in graphs:
-        #print graph
-        print "preorder", [node.get_id() for node in optimiser.Optimiser.preorder(graph)]
-        print "postorder", [node.get_id() for node in optimiser.Optimiser.postorder(graph)]
+        print graph
         print "Optimising...."
         optimiser.Optimiser.remove_unreachable_nodes(graph)
+        optimiser.Optimiser.fix_redundant_loads(graph)
         optimiser.Optimiser.remove_dead_code(graph)
+        print graph
 
 if __name__ == "__main__":
     main()
