@@ -33,10 +33,7 @@ class Optimiser():
     @classmethod
     def remove_unreachable_nodes(self, cfg):
         reachable_nodes = self.postorder(cfg)
-        #filter out and nodes that aren't reachable, and set the cfg's nodes to the new filtered list
-        cfg.set_nodes(filter(lambda node : node in reachable_nodes, cfg.get_nodes()))
-
-
+        cfg.set_nodes(reachable_nodes)
 
     @classmethod
     def remove_dead_code(self, cfg):
