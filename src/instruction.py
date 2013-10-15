@@ -1,10 +1,11 @@
+import re
 class Instruction():
 
     def __init__(self, op, args):
         self.args = args #args is a list of registers/constants/identifiers
         self.op = op
         #filter out arguments that aren't of the form r<number>
-        self.registers = filter(lambda arg : str(arg).startswith('r') and len(arg) == 2 and arg[1] in "0123456789", args)
+        self.registers = filter(lambda arg : re.match(r'^r[0-9]+$', str(arg)), args)
 
     def get_op(self):
         return self.op

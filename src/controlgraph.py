@@ -29,6 +29,10 @@ class Node:
     def get_id(self):
         return self.node_id
 
+    def __iter__(self):
+        for instruction in self.instructions:
+            yield instruction
+
     #adds an out edge to this node and keeps track of that edge in the node we're connecting to.
     def add_out_node(self, node):
         self.out_nodes.append(node)
@@ -119,7 +123,6 @@ class CFG:
                 registers.add(register)
         return registers
 
-
     def get_nodes(self):
         return self.nodes
     def set_nodes(self, new_nodes):
@@ -136,4 +139,7 @@ class CFG:
 
     def __repr__(self):
         return self.name + ':\n' + repr(self.nodes)
+
+    def print_nodes(self):
+        return [node.get_id() for node in self.nodes]
 

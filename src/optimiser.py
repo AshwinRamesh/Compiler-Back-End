@@ -2,25 +2,40 @@ import copy
 class Optimiser():
 
     @staticmethod
-    def postorder(cfg):
+    def _order(cfg, post):
         reachable_nodes = []
         nodes = [cfg.get_start()]
         prevNode = None
         while nodes:
-            node = nodes[-1]
+            if post:
+                node = nodes[-1]
+            else:
+                node = nodes[0]
             if prevNode == None or node in prevNode.get_out_nodes():
                 nodes += node.get_out_nodes() 
             else:
                 reachable_nodes.append(node)
-                nodes.pop()
+                if post:
+                    nodes.pop()
+                else:
+                    nodes.pop(0)
             prevNode = node
         return reachable_nodes
+
+    @classmethod
+    def postorder(self, cfg):
+        return self._order(cfg, post=True)
+
+    @classmethod
+    def preorder(self, cfg):
+        return self._order(cfg, post=False)
 
     @classmethod
     def remove_unreachable_nodes(self, cfg):
         reachable_nodes = self.postorder(cfg)
         #filter out and nodes that aren't reachable, and set the cfg's nodes to the new filtered list
         cfg.set_nodes(filter(lambda node : node in reachable_nodes, cfg.get_nodes()))
+
 
 
     @classmethod
@@ -61,3 +76,32 @@ class Optimiser():
                 #if every register in the instruction is one unused in the node, then that instruction is obsolete
                 if all(register in unused_registers for register in instruction.get_registers()):
                     node.remove_instruction(instruction)
+
+        @classmethod
+        def remove_redundant_loads(self, cfg):
+
+            #define
+            IN, OUT, GEN, KILL = 0, 1, 2, 3
+
+
+
+            def transfer(node_sets):
+                #basedguido
+                return node_sets[GEN] | (node_sets[IN] - node_sets[KILL])
+
+            nodes = self.preorder(cfg)
+            # {node -> {in set}, {out set} }
+            sets = {node : [set(node.get_in_nodes()), set(), set(), set()] for node in nodes }
+            worklist = cfg.get_start().get_out_nodes()
+
+            while nodes:
+                node = worklist[0]
+
+                sets[node][1] = transfer(node, sets[node])
+                for predecessor in node.get_in_nodes():
+                    sets[predecessor][0] = sets[node][1]
+                    worklist.append(predecessor)
+                worklist.remove(node)
+
+
+
