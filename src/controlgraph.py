@@ -55,9 +55,10 @@ class Node:
 
 class CFG:
 
-    def __init__(self, name, blocks):
+    def __init__(self, name, blocks, func_args):
 
         self.name = name
+        self.func_args = func_args
         self.start = Node("START", [])
         self.end = Node("END", [])
         self.nodes = [self.start, self.end]
@@ -132,8 +133,12 @@ class CFG:
             if node.get_id() == node_id:
                 return node
 
-    def create_intermediate_code(self): # TODO
-        pass
+    def create_intermediate_code(self):
+        ret = "(%s (%s)\n" % (self.name, ' '.join(self.func_args))
+        for node in filter(lambda n: n.get_id() not in ("START","END"), sorted(self.nodes, key=lambda n: n.get_id())):
+            ret += "(%s\n%s)\n" % (node.get_id(), "\n".join(str(instr) for instr in node.instructions))
+        ret += ")"
+        return ret
 
     def __repr__(self):
         return self.name + ':\n' + repr(self.nodes)
