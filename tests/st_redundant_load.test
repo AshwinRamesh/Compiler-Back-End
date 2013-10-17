@@ -1,0 +1,10 @@
+((st_redundant_load (n x)
+(0
+(st n r1)
+(br r1 1 1))
+(1
+(ld r2 n)
+(ld r3 x)
+(add r1 r2 r3)
+(ret r1))
+))
