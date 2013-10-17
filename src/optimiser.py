@@ -83,7 +83,7 @@ class Optimiser():
         # make gen and kill sets for all nodes
 
         def make_gen_for_node(node):
-            gen = sets[node][GEN] 
+            gen = set() 
             for instr in node:
                 op = instr.get_op()
                 if op in ("ld","add","lc","eq","call"):
@@ -93,13 +93,16 @@ class Optimiser():
                     # if it's an ld then it should be in the gen set
                     if op == "ld":
                         gen.add(instr)
-                        print "added",instr,"to gen"
                 if op == "st":
                     # remove any previous instrs that use the variable in this instruction
                     gen = set([i for i in gen if i.get_args()[1] != instr.get_args()[0]])
+
+            return gen
         
         def make_kill_for_node(node):
-            kill = sets[node][KILL]
+            # the kill set contains all the instructions in the program that are "killed" by this node
+            # that is, we look through every LD in the program, and see if its register is overwritten by this node.
+            kill = set() 
             for instr in node:
                 op = instr.get_op()
                 if op in ("ld","add","lc","eq","call"):
@@ -117,9 +120,11 @@ class Optimiser():
                             if instr2.get_op() == "ld" and instr2.get_args()[1] == instr.get_args()[0]:
                                 kill.add(instr2)
 
+            return kill
+
         for node in nodes:
-            make_gen_for_node(node)
-            make_kill_for_node(node)
+            sets[node][GEN] = make_gen_for_node(node)
+            sets[node][KILL] = make_kill_for_node(node)
 
         def transfer(node, node_sets):
             return node_sets[GEN] | (node_sets[IN] - node_sets[KILL])
