@@ -10,12 +10,6 @@ class Instruction():
     def get_op(self):
         return self.op
 
-    #get the number of the register. 
-    #eg 'r4' -> 4
-    @staticmethod
-    def get_number(register):
-        return int(register[1])
-
     def get_registers(self):
         return self.registers
 
