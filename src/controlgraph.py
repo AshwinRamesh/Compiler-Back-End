@@ -29,6 +29,9 @@ class Node:
     def get_id(self):
         return self.node_id
 
+    def __iter__(self):
+        return self.instructions.__iter__()
+
     #adds an out edge to this node and keeps track of that edge in the node we're connecting to.
     def add_out_node(self, node):
         self.out_nodes.append(node)
@@ -52,9 +55,10 @@ class Node:
 
 class CFG:
 
-    def __init__(self, name, blocks):
+    def __init__(self, name, blocks, func_args):
 
         self.name = name
+        self.func_args = func_args
         self.start = Node("START", [])
         self.end = Node("END", [])
         self.nodes = [self.start, self.end]
@@ -87,8 +91,7 @@ class CFG:
         for node in self.get_nodes():
             for instruction in node.get_instructions():
                 if instruction.get_op() == "br":
-                    args = instruction.get_args()
-                    br_block_1, br_block_2 = args[1], args[2]
+                    br_block_1, br_block_2 = instruction.get_arg(1), instruction.get_arg(2)
                     node.add_out_node(block_entry_nodes[br_block_1])
                     if (br_block_1 != br_block_2):
                         node.add_out_node(block_entry_nodes[br_block_2])
@@ -119,7 +122,6 @@ class CFG:
                 registers.add(register)
         return registers
 
-
     def get_nodes(self):
         return self.nodes
     def set_nodes(self, new_nodes):
@@ -131,9 +133,16 @@ class CFG:
             if node.get_id() == node_id:
                 return node
 
-    def create_intermediate_code(self): # TODO
-        pass
+    def create_intermediate_code(self):
+        ret = "(%s (%s)\n" % (self.name, ' '.join(self.func_args))
+        for node in filter(lambda n: n.get_id() not in ("START","END"), sorted(self.nodes, key=lambda n: n.get_id())):
+            ret += "(%s\n%s)\n" % (node.get_id(), "\n".join(str(instr) for instr in node.instructions))
+        ret += ")"
+        return ret
 
     def __repr__(self):
         return self.name + ':\n' + repr(self.nodes)
+
+    def print_nodes(self):
+        return [node.get_id() for node in self.nodes]
 
