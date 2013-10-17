@@ -90,8 +90,7 @@ class CFG:
         for node in self.get_nodes():
             for instruction in node.get_instructions():
                 if instruction.get_op() == "br":
-                    args = instruction.get_args()
-                    br_block_1, br_block_2 = args[1], args[2]
+                    br_block_1, br_block_2 = instruction.get_arg(1), instruction.get_arg(2)
                     node.add_out_node(block_entry_nodes[br_block_1])
                     if (br_block_1 != br_block_2):
                         node.add_out_node(block_entry_nodes[br_block_2])

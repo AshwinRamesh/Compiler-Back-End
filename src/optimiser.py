@@ -71,6 +71,7 @@ class Optimiser():
                 if all(register in unused_registers for register in instruction.get_registers()):
                     node.remove_instruction(instruction)
 
+    # returns True if any changes were made
     @classmethod
     def fix_redundant_loads(self, cfg):
 
@@ -88,14 +89,14 @@ class Optimiser():
                 op = instr.get_op()
                 if op in ("ld","add","lc","eq","call"):
                     # remove any previous instrs in gen that use the register in this instruction
-                    gen = set([i for i in gen if i.get_args()[0] != instr.get_args()[0]])
+                    gen = set([i for i in gen if i.get_arg(0) != instr.get_arg(0)])
 
                     # if it's an ld then it should be in the gen set
                     if op == "ld":
                         gen.add(instr)
                 if op == "st":
                     # remove any previous instrs that use the variable in this instruction
-                    gen = set([i for i in gen if i.get_args()[1] != instr.get_args()[0]])
+                    gen = set([i for i in gen if i.get_arg(1) != instr.get_arg(0)])
 
             return gen
         
@@ -110,14 +111,14 @@ class Optimiser():
                         if node2 == node:
                             continue
                         for instr2 in node2:
-                            if instr2.get_op() == "ld" and instr2.get_args()[0] == instr.get_args()[0]:
+                            if instr2.get_op() == "ld" and instr2.get_arg(0) == instr.get_arg(0):
                                 kill.add(instr2)
                 if op == "st":
                     for node2 in cfg.get_nodes():
                         if node2 == node:
                             continue
                         for instr2 in node:
-                            if instr2.get_op() == "ld" and instr2.get_args()[1] == instr.get_args()[0]:
+                            if instr2.get_op() == "ld" and instr2.get_arg(1) == instr.get_arg(0):
                                 kill.add(instr2)
 
             return kill
@@ -138,9 +139,34 @@ class Optimiser():
                 worklist.append(successor)
             worklist.remove(node)
 
-        for node in nodes:
-            print "node:",node.get_id()
-            print "live lds:",sets[node][GEN]
-            print "killed lds:",sets[node][KILL]
-            print "in set:",sets[node][IN]
-            print "out set:",sets[node][OUT],"\n"
+        # TRANSFORM PHASE
+
+        # replaces all the registers used in instructions in node that are old_reg with new_reg
+        # except if the instruction is ignored_instruction. this is always a ld instruction.
+        # we need to ignore it because it needs to become dead code - if we change it, optimiser
+        # will think the instruction is actually needed.
+        def replace_register(node, old_reg, new_reg, ignored_instruction):
+            for instruction in node:
+                if instruction == ignored_instruction:
+                    continue
+                for i in xrange(instruction.get_num_args()):
+                    if instruction.get_arg(i) == old_reg:
+                        instruction.set_arg(i, new_reg)
+
+        # go through all the nodes, and find instances where
+        # the in set and out set have an instruction with the same variable but different registers.
+        # (i've put this in a function to make it so we can break out of that super nested for-loop below easily)
+        # (it also returns True if a change was made)
+        def transform():
+            for node in nodes:
+                for instr in sets[node][IN]:
+                    for instr2 in sets[node][OUT]:
+                        reg1, reg2, var1, var2 = instr.get_arg(0), instr2.get_arg(0), instr.get_arg(1), instr2.get_arg(1)
+                        if var1 == var2 and reg1 != reg2:
+                            # so the variable is stored in both reg1 and reg2. we replace the out set register (reg2)
+                            # with the in set register (reg1)
+                            replace_register(node, reg2, reg1, instr2)
+                            # once we've done that, we can't continue - we need to re-do this analysis. so return here.
+                            return True
+            return False
+        return transform()

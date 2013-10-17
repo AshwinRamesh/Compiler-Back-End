@@ -5,9 +5,7 @@ import optimiser
 
 def main():
     program = parser.process_file(sys.argv[1])
-    graphs = [] #dealwithit
-    #for key, function in functions.items():
-    #    graphs[key] = ControlGraph.create_cfg(key, function)
+    graphs = []
 
     for name, function in program.iteritems():
         graphs.append(CFG(name, function['blocks']))
@@ -16,8 +14,11 @@ def main():
         print graph
         print "Optimising...."
         optimiser.Optimiser.remove_unreachable_nodes(graph)
-        optimiser.Optimiser.fix_redundant_loads(graph)
-        optimiser.Optimiser.remove_dead_code(graph)
+        while True:
+            optimiser.Optimiser.remove_dead_code(graph)
+            # this returns False if no changes were made
+            if optimiser.Optimiser.fix_redundant_loads(graph) == False:
+                break
         print graph
 
 if __name__ == "__main__":
