@@ -1,20 +1,51 @@
-import re
 class Instruction():
+    OPCODE_INFO = {
+        "lc": ["REG", "NUM"],
+        "ld": ["REG", "ID"],
+        "st": ["ID", "REG"],
+        "add": ["REG", "REG", "REG"],
+        "sub": ["REG", "REG", "REG"],
+        "mul": ["REG", "REG", "REG"],
+        "div": ["REG", "REG", "REG"],
+        "lt": ["REG", "REG", "REG"],
+        "gt": ["REG", "REG", "REG"],
+        "eq": ["REG", "REG", "REG"],
+        "br": ["REG", "NUM", "NUM"],
+        "ret": ["REG"],
+        "call": ["REG", "ID", "REG_LIST"]
+    }
 
     def __init__(self, op, args):
         self.args = args #args is a list of registers/constants/identifiers
         self.op = op
-        self.update_registers()
-
-    def update_registers(self):
-        #filter out arguments that aren't of the form r<number>
-        self.registers = filter(lambda arg : re.match(r'^r[0-9]+$', str(arg)), self.args)
 
     def get_op(self):
         return self.op
 
     def get_registers(self):
-        return self.registers
+        registers = set()
+        arg_info = self.OPCODE_INFO[self.op]
+        for i in xrange(len(arg_info)):
+            if arg_info[i] == "REG":
+                registers.add(self.args[i])
+            elif arg_info[i] == "REG_LIST":
+                for j in xrange(i,len(self.args)):
+                    registers.add(self.args[j])
+        return registers
+
+    def _get_args_with_type(self, type_):
+        ret = set()
+        arg_info = self.OPCODE_INFO[self.op]
+        for i in xrange(len(arg_info)):
+            if arg_info[i] == type_:
+                ret.add(self.args[i])
+        return ret
+
+    def get_variables(self):
+        return self._get_args_with_type("ID")
+
+    def get_constants(self):
+        return self._get_args_with_type("NUM")
 
     def get_arg(self, index):
         return self.args[index]
@@ -24,7 +55,6 @@ class Instruction():
 
     def set_arg(self, index, value):
         self.args[index] = value
-        self.update_registers()
 
     def __str__(self):
         return "( " + self.op + " " + " ".join(map(str, self.args)) + " )"

@@ -89,17 +89,17 @@ class Optimiser():
                 op = instr.get_op()
                 if op in ("ld","add","lc","eq","call"):
                     # remove any previous instrs in gen that use the register in this instruction
-                    gen = set([i for i in gen if i.get_arg(0) != instr.get_arg(0)])
+                    gen = set(i for i in gen if i.get_arg(0) != instr.get_arg(0))
 
                     # if it's an ld then it should be in the gen set
                     if op == "ld":
                         gen.add(instr)
                 if op == "st":
                     # remove any previous instrs that use the variable in this instruction
-                    gen = set([i for i in gen if i.get_arg(1) != instr.get_arg(0)])
+                    gen = set(i for i in gen if i.get_arg(1) != instr.get_arg(0))
 
             return gen
-        
+
         def make_kill_for_node(node):
             # the kill set contains all the instructions in the program that are "killed" by this node
             # that is, we look through every LD in the program, and see if its register is overwritten by this node.
