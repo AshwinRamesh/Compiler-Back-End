@@ -87,15 +87,21 @@ class Optimiser():
             gen = set()
             for instr in node:
                 op = instr.get_op()
-                if op in ("ld","add","lc","eq","call"):
+                # if the instruction is an operation that overwrites a register...
+                if op not in ("st", "br", "ret"):
                     # remove any previous instrs in gen that use the register in this instruction
+                    # gen always contains either LD or ST instructions, which contain exactly one register,
+                    # hence why we use get_registers().pop() here.
                     gen = set(i for i in gen if i.get_registers().pop() != instr.get_registers().pop())
 
                     # if it's an ld then it should be in the gen set
                     if op == "ld":
                         gen.add(instr)
+
                 if op == "st":
                     # remove any previous instrs that use the variable in this instruction
+                    # gen always contains either LD or ST instructions, which contain exactly one variable,
+                    # hence why we use get_variables().pop() here.
                     gen = set(i for i in gen if i.get_variables().pop() != instr.get_variables().pop())
                     gen.add(instr)
 
@@ -107,21 +113,25 @@ class Optimiser():
             kill = set() 
             for instr in node:
                 op = instr.get_op()
-                if op in ("ld","add","lc","eq","call"):
-                    for node2 in cfg.get_nodes():
-                        if node2 == node:
-                            continue
-                        for instr2 in node2:
-                            if instr2.get_op() == "ld" and instr2.get_registers().pop() == instr.get_registers().pop():
-                                kill.add(instr2)
-                if op == "st":
-                    for node2 in cfg.get_nodes():
-                        if node2 == node:
-                            continue
-                        for instr2 in node:
-                            if instr2.get_op() == "ld" and instr2.get_variables().pop() == instr.get_variables().pop():
+                # we don't look at instructions who don't affect a variable or register.
+                if op in ("br", "ret"):
+                    continue
+
+                # getting here means instr is an instruction that may kill other instructions.
+                # then go through every LD in the program, ignoring this node 
+                for node2 in [n for n in cfg.get_nodes() if n != node]:
+                    for instr2 in [i for i in node2 if i.get_op() == "ld"]:
+                        # if the instruction is an operation that writes to a register...
+                        if op not in ("st", "br", "ret"):
+                            # and it writes to the same register as our killer instruction...
+                            if instr2.get_registers().pop() == instr.get_registers().pop():
                                 kill.add(instr2)
 
+                        # if the instruction writes to a variable...
+                        if op == "st":
+                            # and it writes to the same variable as our killer instruction...
+                            if instr2.get_variables().pop() == instr.get_variables().pop():
+                                kill.add(instr2)
             return kill
 
         for node in nodes:
