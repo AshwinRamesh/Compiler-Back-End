@@ -84,19 +84,20 @@ class Optimiser():
         # make gen and kill sets for all nodes
 
         def make_gen_for_node(node):
-            gen = set() 
+            gen = set()
             for instr in node:
                 op = instr.get_op()
                 if op in ("ld","add","lc","eq","call"):
                     # remove any previous instrs in gen that use the register in this instruction
-                    gen = set(i for i in gen if i.get_arg(0) != instr.get_arg(0))
+                    gen = set(i for i in gen if i.get_registers().pop() != instr.get_registers().pop())
 
                     # if it's an ld then it should be in the gen set
                     if op == "ld":
                         gen.add(instr)
                 if op == "st":
                     # remove any previous instrs that use the variable in this instruction
-                    gen = set(i for i in gen if i.get_arg(1) != instr.get_arg(0))
+                    gen = set(i for i in gen if i.get_variables().pop() != instr.get_variables().pop())
+                    gen.add(instr)
 
             return gen
 
@@ -111,14 +112,14 @@ class Optimiser():
                         if node2 == node:
                             continue
                         for instr2 in node2:
-                            if instr2.get_op() == "ld" and instr2.get_arg(0) == instr.get_arg(0):
+                            if instr2.get_op() == "ld" and instr2.get_registers().pop() == instr.get_registers().pop():
                                 kill.add(instr2)
                 if op == "st":
                     for node2 in cfg.get_nodes():
                         if node2 == node:
                             continue
                         for instr2 in node:
-                            if instr2.get_op() == "ld" and instr2.get_arg(1) == instr.get_arg(0):
+                            if instr2.get_op() == "ld" and instr2.get_variables().pop() == instr.get_variables().pop():
                                 kill.add(instr2)
 
             return kill
@@ -161,7 +162,8 @@ class Optimiser():
             for node in nodes:
                 for instr in sets[node][IN]:
                     for instr2 in sets[node][OUT]:
-                        reg1, reg2, var1, var2 = instr.get_arg(0), instr2.get_arg(0), instr.get_arg(1), instr2.get_arg(1)
+                        reg1, reg2, var1, var2 = instr.get_registers().pop(), instr2.get_registers().pop(), instr.get_variables().pop(), \
+                                instr2.get_variables().pop()
                         if var1 == var2 and reg1 != reg2:
                             # so the variable is stored in both reg1 and reg2. we replace the out set register (reg2)
                             # with the in set register (reg1)
