@@ -1,4 +1,5 @@
 class Instruction():
+    #maps each instruction to the kind of thing it can store as arguments
     OPCODE_INFO = {
         "lc": ["REG", "NUM"],
         "ld": ["REG", "ID"],
@@ -23,22 +24,27 @@ class Instruction():
         return self.op
 
     def get_registers(self):
-        registers = set()
+        #a list we make sure is unique (but ordered, so we can't use a set)
+        registers = []
         arg_info = self.OPCODE_INFO[self.op]
         for i in xrange(len(arg_info)):
+            arg = self.args[i]
             if arg_info[i] == "REG":
-                registers.add(self.args[i])
+                if arg not in registers:
+                    registers.append(arg)
             elif arg_info[i] == "REG_LIST":
                 for j in xrange(i,len(self.args)):
-                    registers.add(self.args[j])
+                    if arg not in registers:
+                        registers.append(arg)
         return registers
 
     def _get_args_with_type(self, type_):
-        ret = set()
+        ret = []
         arg_info = self.OPCODE_INFO[self.op]
         for i in xrange(len(arg_info)):
             if arg_info[i] == type_:
-                ret.add(self.args[i])
+                if self.args[i] not in ret:
+                    ret.append(self.args[i])
         return ret
 
     def get_variables(self):

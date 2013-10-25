@@ -3,6 +3,9 @@ class Optimiser():
 
     @staticmethod
     def _order(cfg, post):
+        """
+        Performs a standard preorder traversal if "post" is False or postorder traversal if "post" is True
+        """
         reachable_nodes = []
         nodes = [cfg.get_start()]
         prevNode = None
@@ -24,14 +27,17 @@ class Optimiser():
 
     @classmethod
     def postorder(self, cfg):
+        """Performs a postorder traversal of a cfg"""
         return self._order(cfg, post=True)
 
     @classmethod
     def preorder(self, cfg):
+        """Performs a preorder traversal of a cfg"""
         return self._order(cfg, post=False)
 
     @classmethod
     def remove_unreachable_nodes(self, cfg):
+        """Removes nodes that have no edges leading into them in cfg"""
         reachable_nodes = self.postorder(cfg)
         cfg.set_nodes(reachable_nodes)
 
@@ -39,16 +45,21 @@ class Optimiser():
     def remove_dead_code(self, cfg):
 
         def transfer(node, in_set):
+            #the out set maps a register to whether it is used in the in set
             out_set = {register : used for register, used in in_set.iteritems()}
+            #traverse the code in the node backwards
             for instruction in reversed(node.get_instructions()):
+                #if we are dealing with a br, ret or st instruction or any registers are in the out_set
                 if instruction.get_op() in ["br","ret","st"] or any(register in out_set for register in instruction.get_registers()):
+                    #place every register in the current instruction in the out set
                     for register in instruction.get_registers():
                         out_set[register] = True
             return out_set
 
         nodes = self.postorder(cfg)
-        # {node -> {in set}, {out set} }
+        # {node -> [ {in set}, {out set} ]}
         sets = {node : [{}, {}] for node in nodes }
+        #make a copy of the nodes we need to iterate through since we'll be modifying the list while we do so
         worklist = copy.copy(cfg.get_end().get_in_nodes())
         while worklist:
             node = worklist[0]
@@ -89,14 +100,13 @@ class Optimiser():
                 op = instr.get_op()
                 if op in ("ld","add","lc","eq","call"):
                     # remove any previous instrs in gen that use the register in this instruction
-                    gen = set(i for i in gen if i.get_registers().pop() != instr.get_registers().pop())
-
+                    gen = set(i for i in gen if i.get_registers()[0] != instr.get_registers()[0])
                     # if it's an ld then it should be in the gen set
                     if op == "ld":
                         gen.add(instr)
                 if op == "st":
                     # remove any previous instrs that use the variable in this instruction
-                    gen = set(i for i in gen if i.get_variables().pop() != instr.get_variables().pop())
+                    gen = set(i for i in gen if i.get_variables()[0] != instr.get_variables()[0])
                     gen.add(instr)
 
             return gen
@@ -112,14 +122,14 @@ class Optimiser():
                         if node2 == node:
                             continue
                         for instr2 in node2:
-                            if instr2.get_op() == "ld" and instr2.get_registers().pop() == instr.get_registers().pop():
+                            if instr2.get_op() == "ld" and instr2.get_registers()[0] == instr.get_registers()[0]:
                                 kill.add(instr2)
                 if op == "st":
                     for node2 in cfg.get_nodes():
                         if node2 == node:
                             continue
                         for instr2 in node:
-                            if instr2.get_op() == "ld" and instr2.get_variables().pop() == instr.get_variables().pop():
+                            if instr2.get_op() == "ld" and instr2.get_variables()[0] == instr.get_variables()[0]:
                                 kill.add(instr2)
 
             return kill
@@ -140,12 +150,14 @@ class Optimiser():
                 worklist.append(successor)
             worklist.remove(node)
 
+
         # TRANSFORM PHASE
 
         # replaces all the registers used in instructions in node that are old_reg with new_reg
         # except if the instruction is ignored_instruction. this is always a ld instruction.
         # we need to ignore it because it needs to become dead code - if we change it, optimiser
         # will think the instruction is actually needed.
+        #Returns true if we replace something, false otherwise
         def replace_register(node, old_reg, new_reg, ignored_instruction):
             for instruction in node:
                 if instruction == ignored_instruction:
@@ -153,6 +165,8 @@ class Optimiser():
                 for i in xrange(instruction.get_num_args()):
                     if instruction.get_arg(i) == old_reg:
                         instruction.set_arg(i, new_reg)
+                        return True
+            return False
 
         # go through all the nodes, and find instances where
         # the in set and out set have an instruction with the same variable but different registers.
@@ -162,13 +176,14 @@ class Optimiser():
             for node in nodes:
                 for instr in sets[node][IN]:
                     for instr2 in sets[node][OUT]:
-                        reg1, reg2, var1, var2 = instr.get_registers().pop(), instr2.get_registers().pop(), instr.get_variables().pop(), \
-                                instr2.get_variables().pop()
+                        reg1, reg2, var1, var2 = instr.get_registers()[0], instr2.get_registers()[0], instr.get_variables()[0], \
+                                instr2.get_variables()[0]
                         if var1 == var2 and reg1 != reg2:
+
                             # so the variable is stored in both reg1 and reg2. we replace the out set register (reg2)
                             # with the in set register (reg1)
-                            replace_register(node, reg2, reg1, instr2)
-                            # once we've done that, we can't continue - we need to re-do this analysis. so return here.
-                            return True
+                            if replace_register(node, reg2, reg1, instr2):
+                                # once we've done that, we can't continue - we need to re-do this analysis. so return here.
+                                return True
             return False
         return transform()

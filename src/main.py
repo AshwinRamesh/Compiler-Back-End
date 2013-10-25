@@ -26,7 +26,7 @@ def main():
             # this returns False if no changes were made
             if optimiser.Optimiser.fix_redundant_loads(graph) == False:
                 break
-        #print graph
+            print graph
 
     print graphs_to_code(graphs)
 
