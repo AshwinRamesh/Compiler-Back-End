@@ -63,7 +63,7 @@ class Instruction():
         self.args[index] = value
 
     def __str__(self):
-        return "( " + self.op + " " + " ".join(map(str, self.args)) + " )"
+        return "(" + self.op + " " + " ".join(map(str, self.args)) + ")"
 
     def __repr__(self):
         return str(self)
