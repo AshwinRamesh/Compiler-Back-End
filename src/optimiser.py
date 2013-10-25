@@ -86,10 +86,11 @@ class Optimiser():
     @classmethod
     def fix_redundant_loads(self, cfg):
 
-        #define
+        #like an enum
         IN, OUT, GEN, KILL = 0, 1, 2, 3
 
         nodes = self.preorder(cfg)
+        #the sets for each node
         sets = {node : [set(),set(),set(),set()] for node in nodes}
 
         # make gen and kill sets for all nodes
@@ -141,13 +142,18 @@ class Optimiser():
                                 kill.add(instr2)
             return kill
 
+        #make the gen and kill sets for real this time
         for node in nodes:
             sets[node][GEN] = make_gen_for_node(node)
             sets[node][KILL] = make_kill_for_node(node)
 
+
+        #This is the classic GEN/KILL transfer function 
         def transfer(node, node_sets):
             return node_sets[GEN] | (node_sets[IN] - node_sets[KILL])
 
+
+        #do the usual worklist algorithm to apply the transfer function to each node
         worklist = copy.copy(cfg.get_start().get_out_nodes())
         while worklist:
             node = worklist[0]

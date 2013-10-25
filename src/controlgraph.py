@@ -11,7 +11,7 @@ class Node:
 
     def add_instruction(self, instruction):
         self.instructions.append(instruction)
-    
+
     def remove_instruction(self, instruction):
         self.instructions.remove(instruction)
 
@@ -30,7 +30,7 @@ class Node:
         return self.node_id
 
     def __iter__(self):
-        return self.instructions.__iter__()
+        return iter(self.instructions)
 
     #adds an out edge to this node and keeps track of that edge in the node we're connecting to.
     def add_out_node(self, node):
@@ -73,11 +73,13 @@ class CFG:
             for instruction in instructions:
                 current_instructions.append(instruction)
                 opcode = instruction[0]
-                if opcode == "ret":
+                if opcode in ("ret", "br"):
                     #make a node with the current instructions, and clear the list for any later nodes
                     node = self.add_new_node(current_instructions)
                     current_instructions = []
-                    node.add_out_node(self.end)
+                    if opcode == "ret":
+                        node.add_out_node(self.end)
+
                     if block_id not in block_entry_nodes:
                         block_entry_nodes[block_id] = node
             #make a node at the end of the instructions
